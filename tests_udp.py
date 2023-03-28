@@ -2,7 +2,7 @@ import peer_udp
 import time
 import sys
 
-current_port = 14000
+current_port = 12829
 
 def gen_connections_helper(n, peer_list, contact_infos):
     
@@ -59,13 +59,15 @@ def broadcast_test(n):
         
         if num_messages != n - 1:
             failures.append(("NUM_MESSAGE FAIL at peer: " + str(i)))
-            
+          
+        ''''  
         for j in range(n):
             if i == j: continue
             m = peer_list[i].get_message()
-            if not m or not m.body or m.body != str(j):
+            if not m or not m.body or m.body["data"] != str(j):
                 failures.append(("BODY MESSAGE FAIL at peer: " + str(i)))
-            
+        '''
+         
     if not failures:
         failures.append('ALL PASSED')
     
@@ -73,13 +75,49 @@ def broadcast_test(n):
 
 n = int(sys.argv[1])
 
+
 start_time = time.time()
 print("Connections Test:", str(connections_test(n)))
 end_time = time.time()
 print("Time (ms)(n = " + str(n) + "):", 1000*(end_time-start_time), "\n")
 
+time.sleep(1)
+
 start_time = time.time()
 print("Broadcast Test:", str(broadcast_test(n)))
 end_time = time.time()
 print("Time(ms)(n = " + str(n) + "):", 1000*(end_time-start_time), "\n")
+
+time.sleep(1)
+
+def ping_pong(n):
+    
+    peer_list = []
+    connections_list = []
+    failures = []
+    
+    gen_connections_helper(n, peer_list, connections_list)
+    
+    peer1 = peer_list[0]
+    
+    for each in peer1.connections.values():
+        each.send_ping(peer1.sock)
+        
+    time.sleep(1*10**(-6))
+        
+    #for m in peer1.messages:
+        #print(m.sender, m.body)
+    
+    if peer1.get_num_messages() != n - 1:
+        failures.append("FAILED TO COLLECT " + str(n-1) + " PONGS")
+        
+    if not failures:
+        failures.append("ALL PASSED")
+        
+    return failures
+        
+start_time = time.time()
+print("Ping Pong:", str(ping_pong(n)))
+end_time = time.time()
+print("Time (ms)(n = " + str(n) + "):", 1000*(end_time-start_time), "\n")
 

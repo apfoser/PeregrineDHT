@@ -2,10 +2,20 @@ import socket
 import threading
 from collections import deque
 from contact import Contact
+import pickle
 
 socket_type = socket.SOCK_DGRAM
 
 class Message:
+    
+    '''
+    Message Body Format,
+    
+    body = {
+        "type" : one of ["test", "ping", "pong", "broadcast"]
+        "data" : depends on type (data protocol in progress)
+        }
+    '''
     
     def __init__(self, sender: str, body: str):
         self.sender = sender
@@ -67,22 +77,18 @@ class UDP_Server:
         else:
             return None
     
-    def send_message(self, peer_id: str, message: str):
-        
-        # Contact object containing info for receiving peer
-        # field sockfd contains socket
-        info = self.connections[peer_id]
-        
-        # If 0 is returned, 0 bytes are sent
-        if (self.sock.sendto(message.encode(), (info.ip, info.port)) == 0):
-            print("Error transmitting message")
-
-        
     
     def broadcast(self, message: str):
         
+        m = {
+            "type" : "broadcast",
+            "data" : message
+            }
+        
         for peer in self.connections:
-            self.send_message(peer, message)
+            
+            con = self.connections[peer]
+            con.send_message(self.sock, m)
             
     
     def create_connection(self, peer_id: str, contact_info: Contact):
@@ -119,16 +125,14 @@ class UDP_Server:
 
         addr = ret[0][-1]
         sockfd = socket.socket(socket.AF_INET6, socket_type)
-        # allow the port to become availbale after end
+        # allow the port to become available after end
         sockfd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
         sockfd.bind(addr)
     
         return(sockfd)
         
     def run_server(self):
-        
-        connect_number = 1
-        
+    
         while (True):
             
             # create new contact entry
@@ -139,12 +143,14 @@ class UDP_Server:
                 break
             
             new_contact = Contact(client_addr[0], client_addr[1])
-            peer_id = connect_number
-            
-            m = Message(peer_id, client_message.decode("utf-8"))
+            peer_id = (client_addr[0], client_addr[1])
             
             with self.connections_lock:
                 self.connections[(client_addr[0], client_addr[1])] = new_contact
+                
+            # deserialize message body
+            mbody = pickle.loads(client_message)
+            m = Message(peer_id, mbody)
                 
             with self.messages_lock:
                 self.messages.append(m)
@@ -152,12 +158,29 @@ class UDP_Server:
             # resolve request
             self.request_handler(m)
                 
-            connect_number += 1
             
     def request_handler(self, message: Message):
         
-        print(message.body)
+        m_con = self.connections[message.sender]
+        m_body = message.body
+        m_type = m_body["type"]
+
+        # check message type (message.body)
+        # send to appropriate contact (message.sender)
+        # contact object responds to client (message.sender)
+        match m_type:
             
+            # no use for these two right now
+            case "test": 
+                return
+            case "broadcast": 
+                return
             
+            # send pong
+            case "ping": 
+                m_con.send_pong(self.sock)
             
-        pass
+            # no need to do anything
+            case "pong": 
+                pass
+        
