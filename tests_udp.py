@@ -2,7 +2,8 @@ import peer_udp
 import time
 import sys
 
-current_port = 12829
+current_port = int(sys.argv[2])
+n = int(sys.argv[1])
 
 def gen_connections_helper(n, peer_list, contact_infos):
     
@@ -18,18 +19,29 @@ def gen_connections_helper(n, peer_list, contact_infos):
         peer_list.append(p)
         contact_infos.append(info)
     
-      
+    # useless in UDP, we don't need a connection
+    '''
     for i in range(n):
         for j in range(n):
             if (i != j):
-                peer_list[i].create_connection(str(j), contact_infos[j])
-                
+                m = {"type" : "connect", "data" : ""}
+                contact_infos[j].send_message(peer_list[i].sock, m)
+    '''          
     return True
 
 def connections_test(n):
     
     p_list = []
-    gen_connections_helper(n, p_list, [])
+    connections_list = []
+    gen_connections_helper(n, p_list, connections_list)
+    
+    for i in range(n):
+        for j in range(n):
+            if (i != j):
+                m = {"type" : "connect", "data" : ""}
+                connections_list[j].send_message(p_list[i].sock, m)
+    
+    time.sleep(1*10**(-6))
 
     failures = []
     for i in range(len(p_list)):
@@ -50,45 +62,39 @@ def broadcast_test(n):
     
     gen_connections_helper(n, peer_list, connections_list)
     
+    for i in range(len(peer_list)):
+        for j in range(len(connections_list)):
+            if i != j:
+                c = connections_list[j]
+                peer_list[i].connections[(c.ip, c.port)] = c
+
+    time.sleep(1*10**(-6))
+    
     for i in range(n):
         peer_list[i].broadcast(str(i))
-        time.sleep(1*(10**(-6)))
+        
+    time.sleep(1*10**(-6))
         
     for i in range(n):
         num_messages = peer_list[i].get_num_messages()
+        #print([m.body for m in peer_list[i].messages])
         
         if num_messages != n - 1:
-            failures.append(("NUM_MESSAGE FAIL at peer: " + str(i)))
+            failures.append(("FAIL at peer: " + str(i)))
           
-        ''''  
+        
         for j in range(n):
             if i == j: continue
             m = peer_list[i].get_message()
             if not m or not m.body or m.body["data"] != str(j):
                 failures.append(("BODY MESSAGE FAIL at peer: " + str(i)))
-        '''
+        
          
     if not failures:
         failures.append('ALL PASSED')
     
     return failures
 
-n = int(sys.argv[1])
-
-
-start_time = time.time()
-print("Connections Test:", str(connections_test(n)))
-end_time = time.time()
-print("Time (ms)(n = " + str(n) + "):", 1000*(end_time-start_time), "\n")
-
-time.sleep(1)
-
-start_time = time.time()
-print("Broadcast Test:", str(broadcast_test(n)))
-end_time = time.time()
-print("Time(ms)(n = " + str(n) + "):", 1000*(end_time-start_time), "\n")
-
-time.sleep(1)
 
 def ping_pong(n):
     
@@ -98,15 +104,20 @@ def ping_pong(n):
     
     gen_connections_helper(n, peer_list, connections_list)
     
+    for i in range(len(peer_list)):
+        for j in range(len(connections_list)):
+            if i != j:
+                c = connections_list[j]
+                peer_list[i].connections[(c.ip, c.port)] = c
+    
+    time.sleep(1*10**(-6))
+    
     peer1 = peer_list[0]
     
     for each in peer1.connections.values():
         each.send_ping(peer1.sock)
         
     time.sleep(1*10**(-6))
-        
-    #for m in peer1.messages:
-        #print(m.sender, m.body)
     
     if peer1.get_num_messages() != n - 1:
         failures.append("FAILED TO COLLECT " + str(n-1) + " PONGS")
@@ -115,6 +126,20 @@ def ping_pong(n):
         failures.append("ALL PASSED")
         
     return failures
+
+start_time = time.time()
+print("Connections Test:", str(connections_test(n)))
+end_time = time.time()
+print("Time (ms)(n = " + str(n) + "):", 1000*(end_time-start_time), "\n")
+
+time.sleep(1*10**(-6))
+
+start_time = time.time()
+print("Broadcast Test:", str(broadcast_test(n)))
+end_time = time.time()
+print("Time(ms)(n = " + str(n) + "):", 1000*(end_time-start_time), "\n")
+
+time.sleep(1*10**(-6))
         
 start_time = time.time()
 print("Ping Pong:", str(ping_pong(n)))

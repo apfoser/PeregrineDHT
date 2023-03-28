@@ -18,6 +18,7 @@ class Contact:
     # send serialized message back to client using server.socket
     def send_message(self, sock,  message):
         
+        #print(self.port, message)
         data = pickle.dumps(message)
 
         # If 0 is returned, 0 bytes are sent
@@ -31,7 +32,6 @@ class Contact:
             "type" : "pong",
             "data" : ""
         }
-        
         self.send_message(sock, m)
         
     def send_ping(self, sock):
@@ -40,5 +40,4 @@ class Contact:
             "type" : "ping",
             "data" : ""
         }
-        
         self.send_message(sock, m)

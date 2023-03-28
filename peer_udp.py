@@ -28,6 +28,9 @@ class UDP_Server:
         
         self.id = id
         
+        # termination flag
+        self.end = 0
+        
         # threading lock(s) for shared resources
         self.connections_lock = threading.Lock()
         self.messages_lock = threading.Lock()
@@ -150,14 +153,19 @@ class UDP_Server:
                 
             # deserialize message body
             mbody = pickle.loads(client_message)
+            #print("R:", client_addr, mbody)
             m = Message(peer_id, mbody)
                 
-            with self.messages_lock:
-                self.messages.append(m)
+            # if it is just a connection message, we don't care
+            # no need to append to message queue
+            if mbody["type"] != "connect":
+                with self.messages_lock:
+                    self.messages.append(m)
                 
             # resolve request
             self.request_handler(m)
-                
+             
+        self.shut_down()
             
     def request_handler(self, message: Message):
         
@@ -171,7 +179,7 @@ class UDP_Server:
         match m_type:
             
             # no use for these two right now
-            case "test": 
+            case "connect": 
                 return
             case "broadcast": 
                 return
@@ -184,3 +192,6 @@ class UDP_Server:
             case "pong": 
                 pass
         
+    # just closes socket
+    def shut_down(self):
+        self.sock.close()
