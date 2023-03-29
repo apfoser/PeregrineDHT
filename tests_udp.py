@@ -5,7 +5,7 @@ import socket
 import contact
 from hanging_threads import start_monitoring
 
-start_monitoring(seconds_frozen=5, test_interval=100)
+#start_monitoring(seconds_frozen=5, test_interval=100)
 
 current_port = int(sys.argv[2])
 n = int(sys.argv[1])

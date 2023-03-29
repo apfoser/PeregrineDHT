@@ -3,14 +3,13 @@ import threading
 from collections import deque
 from contact import Contact, Message
 import pickle
+from utils import calc_id
 
 socket_type = socket.SOCK_DGRAM
 
 class UDP_Server:
     
     def __init__(self, id: str, port: int = 12829):
-        
-        self.id = id
         
         # termination flag
         self.end = 0
@@ -33,6 +32,9 @@ class UDP_Server:
             
         # filled in by setup server
         self.ip = None
+        
+        # filled in by setup serve
+        self.id = None
         
         # setup socket server
         self.sock = self.setup_server()
@@ -83,7 +85,7 @@ class UDP_Server:
             con.send_message(self.sock, m)
             
     
-    def create_connection(self, peer_id: str, contact_info: Contact):
+    def create_connection(self, contact_info: Contact):
         
         # returns list of tuples of possible connections
         try:
@@ -95,7 +97,8 @@ class UDP_Server:
             return
         
         addr = ret[0][-1]
-        new_contact = Contact(addr[0], addr[1])
+        peer_id = calc_id(addr[0], addr[1])
+        new_contact = Contact(addr[0], addr[1], peer_id)
         
         # update info of Contact object
         with self.connections_lock:
@@ -119,6 +122,9 @@ class UDP_Server:
         
         # set ip
         self.ip = addr[0]
+        
+        # set id field
+        self.id = calc_id(self.ip, self.port)
         
         sockfd = socket.socket(socket.AF_INET6, socket_type)
         # allow the port to become available after end
@@ -144,12 +150,10 @@ class UDP_Server:
             # shudown signal
             if message.body["type"] == "end": break
             
-            #print("R:", message.sender, message.body)
-            
             client_ip = message.sender[0]
             client_port = message.sender[1]
             
-            new_contact = Contact(client_ip, client_port)
+            new_contact = Contact(client_ip, client_port, calc_id(client_ip, client_port))
             
             with self.connections_lock:
                 self.connections[(client_ip, client_port)] = new_contact
@@ -196,11 +200,10 @@ class UDP_Server:
     def shut_down(self):
         self.end = 1
         shut_down_sock = socket.socket(socket.AF_INET6, socket_type)
-        self_contact = Contact(self.ip, self.port)
+        self_contact = Contact(self.ip, self.port, self.id)
         sender = (self.ip, self.port)
         body = {"type": "end", "data": ""}
         self_contact.send_message(shut_down_sock, Message(sender, body))
 
         shut_down_sock.close()
         print ("Peer " + str(self.id) + " Shutting Down. Cya!")
-        # git test

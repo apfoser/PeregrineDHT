@@ -18,10 +18,14 @@ class Message:
         
 class Contact:
     
-    def __init__(self, ip: str, port: int, sockfd: socket = None):
+    def __init__(self, ip: str, port: int, id):
         self.ip = ip
         self.port = port
-        self.sockfd = sockfd
+        self.id = id
+        
+    # revise when ID stuff is figured out
+    def astriple(self):
+        return (self.ip, self.port, self.id)
     
     # send serialized message back to client using server.socket
     def send_message(self, sock,  message):
