@@ -18,7 +18,7 @@ def gen_connections_helper(n, peer_list, contact_infos):
         return False
     
     for i in range(n):
-        p = peer_udp.UDP_Server(str(i), current_port)
+        p = peer_udp.UDP_Server(str(i+1), current_port)
         info = peer_udp.Contact('fe80::5dca:6908:58c3:c55f', current_port, '')
         current_port += 1
         peer_list.append(p)
@@ -48,7 +48,10 @@ def connections_test(n):
             failures.append(("FAIL at peer: " + str(i)))
             
     if not failures:
-        return ["ALL PASSED"]
+        failures.append("ALL PASSED")
+    
+    for p in peer_list:
+        p.shut_down()
         
     return failures
    
@@ -92,6 +95,9 @@ def broadcast_test(n):
     if not failures:
         failures.append('ALL PASSED')
         
+    for p in peer_list:
+        p.shut_down()
+        
     return failures
 
 
@@ -123,6 +129,9 @@ def ping_pong(n):
         
     if not failures:
         failures.append("ALL PASSED")
+        
+    for p in peer_list:
+        p.shut_down()
         
     return failures
 

@@ -79,7 +79,6 @@ class UDP_Server:
             
             sender = (self.ip, self.port)
             m = Message(sender, body)
-            print(m)
             con = self.connections[peer]
             con.send_message(self.sock, m)
             
@@ -130,7 +129,7 @@ class UDP_Server:
         
     def run_server(self):
     
-        while (True):
+        while (not self.end):
             
             # create new contact entry
             try:
@@ -141,7 +140,11 @@ class UDP_Server:
             
             # deserialize
             message = pickle.loads(client_message)
-            print("R:", message.sender, message.body)
+            
+            # shudown signal
+            if message.body["type"] == "end": break
+            
+            #print("R:", message.sender, message.body)
             
             client_ip = message.sender[0]
             client_port = message.sender[1]
@@ -159,8 +162,8 @@ class UDP_Server:
                 
             # resolve request
             self.request_handler(message)
-             
-        self.shut_down()
+
+        self.sock.close()
             
     def request_handler(self, message: Message):
         
@@ -188,7 +191,16 @@ class UDP_Server:
                 pass
         
     # just closes socket
+    # send termination datagram to server sock
+    # close temp sock
     def shut_down(self):
+        self.end = 1
+        shut_down_sock = socket.socket(socket.AF_INET6, socket_type)
+        self_contact = Contact(self.ip, self.port)
+        sender = (self.ip, self.port)
+        body = {"type": "end", "data": ""}
+        self_contact.send_message(shut_down_sock, Message(sender, body))
+
+        shut_down_sock.close()
+        print ("Peer " + str(self.id) + " Shutting Down. Cya!")
         
-        print("here")
-        self.sock.close()
