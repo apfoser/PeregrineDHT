@@ -1,26 +1,10 @@
 import socket
 import threading
 from collections import deque
-from contact import Contact
+from contact import Contact, Message
 import pickle
 
 socket_type = socket.SOCK_DGRAM
-
-class Message:
-    
-    '''
-    Message Body Format,
-    
-    body = {
-        "type" : one of ["test", "ping", "pong", "broadcast"]
-        "data" : depends on type (data protocol in progress)
-        }
-    '''
-    
-    def __init__(self, sender: str, body: str):
-        self.sender = sender
-        self.body = body
-        
 
 class UDP_Server:
     
@@ -46,6 +30,9 @@ class UDP_Server:
             self.port = 12829
         else:
             self.port = port
+            
+        # filled in by setup server
+        self.ip = None
         
         # setup socket server
         self.sock = self.setup_server()
@@ -83,13 +70,16 @@ class UDP_Server:
     
     def broadcast(self, message: str):
         
-        m = {
+        body = {
             "type" : "broadcast",
             "data" : message
             }
         
         for peer in self.connections:
             
+            sender = (self.ip, self.port)
+            m = Message(sender, body)
+            print(m)
             con = self.connections[peer]
             con.send_message(self.sock, m)
             
@@ -127,6 +117,10 @@ class UDP_Server:
             return
 
         addr = ret[0][-1]
+        
+        # set ip
+        self.ip = addr[0]
+        
         sockfd = socket.socket(socket.AF_INET6, socket_type)
         # allow the port to become available after end
         sockfd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
@@ -145,25 +139,26 @@ class UDP_Server:
                 print("Error associated with (ip, port):", "(localhost, " + str(self.port) + ")")
                 break
             
-            new_contact = Contact(client_addr[0], client_addr[1])
-            peer_id = (client_addr[0], client_addr[1])
+            # deserialize
+            message = pickle.loads(client_message)
+            print("R:", message.sender, message.body)
+            
+            client_ip = message.sender[0]
+            client_port = message.sender[1]
+            
+            new_contact = Contact(client_ip, client_port)
             
             with self.connections_lock:
-                self.connections[(client_addr[0], client_addr[1])] = new_contact
-                
-            # deserialize message body
-            mbody = pickle.loads(client_message)
-            #print("R:", client_addr, mbody)
-            m = Message(peer_id, mbody)
+                self.connections[(client_ip, client_port)] = new_contact
                 
             # if it is just a connection message, we don't care
             # no need to append to message queue
-            if mbody["type"] != "connect":
+            if message.body["type"] != "connect":
                 with self.messages_lock:
-                    self.messages.append(m)
+                    self.messages.append(message)
                 
             # resolve request
-            self.request_handler(m)
+            self.request_handler(message)
              
         self.shut_down()
             
@@ -186,7 +181,7 @@ class UDP_Server:
             
             # send pong
             case "ping": 
-                m_con.send_pong(self.sock)
+                m_con.send_pong(self.sock, (self.ip, self.port))
             
             # no need to do anything
             case "pong": 
@@ -194,4 +189,6 @@ class UDP_Server:
         
     # just closes socket
     def shut_down(self):
+        
+        print("here")
         self.sock.close()

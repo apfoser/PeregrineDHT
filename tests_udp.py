@@ -1,6 +1,11 @@
 import peer_udp
 import time
 import sys
+import socket
+import contact
+from hanging_threads import start_monitoring
+
+start_monitoring(seconds_frozen=5, test_interval=100)
 
 current_port = int(sys.argv[2])
 n = int(sys.argv[1])
@@ -19,38 +24,32 @@ def gen_connections_helper(n, peer_list, contact_infos):
         peer_list.append(p)
         contact_infos.append(info)
     
-    # useless in UDP, we don't need a connection
-    '''
-    for i in range(n):
-        for j in range(n):
-            if (i != j):
-                m = {"type" : "connect", "data" : ""}
-                contact_infos[j].send_message(peer_list[i].sock, m)
-    '''          
-    return True
+    return
 
 def connections_test(n):
     
-    p_list = []
+    peer_list = []
     connections_list = []
-    gen_connections_helper(n, p_list, connections_list)
+    gen_connections_helper(n, peer_list, connections_list)
     
     for i in range(n):
         for j in range(n):
             if (i != j):
-                m = {"type" : "connect", "data" : ""}
-                connections_list[j].send_message(p_list[i].sock, m)
+                body = {"type" : "connect", "data" : ""}
+                sender = (peer_list[i].ip, peer_list[i].port)
+                connections_list[j].send_message(peer_list[i].sock, contact.Message(sender, body))
     
     time.sleep(1*10**(-6))
 
     failures = []
-    for i in range(len(p_list)):
-        p = p_list[i]
+    for i in range(len(peer_list)):
+        p = peer_list[i]
         if p.get_num_connections() != n - 1:
             failures.append(("FAIL at peer: " + str(i)))
             
     if not failures:
         return ["ALL PASSED"]
+        
     return failures
    
        
@@ -92,7 +91,7 @@ def broadcast_test(n):
          
     if not failures:
         failures.append('ALL PASSED')
-    
+        
     return failures
 
 
@@ -115,7 +114,7 @@ def ping_pong(n):
     peer1 = peer_list[0]
     
     for each in peer1.connections.values():
-        each.send_ping(peer1.sock)
+        each.send_ping(peer1.sock, (peer1.ip, peer1.port))
         
     time.sleep(1*10**(-6))
     
