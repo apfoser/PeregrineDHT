@@ -9,7 +9,7 @@ socket_type = socket.SOCK_DGRAM
 
 class UDP_Server:
     
-    def __init__(self, id: str, port: int = 12829):
+    def __init__(self, port: int = 12829):
         
         # termination flag
         self.end = 0
@@ -171,7 +171,6 @@ class UDP_Server:
             
     def request_handler(self, message: Message):
         
-        m_con = self.connections[message.sender]
         m_body = message.body
         m_type = m_body["type"]
 
@@ -186,13 +185,46 @@ class UDP_Server:
             case "broadcast": 
                 return
             
-            # send pong
             case "ping": 
-                m_con.send_pong(self.sock, (self.ip, self.port))
-            
-            # no need to do anything
+                self.handle_ping(message) 
+                
             case "pong": 
                 pass
+            
+            case "store":
+                self.handle_store(message)
+            
+            case "find_value":
+                self.handle_find_value(message)
+            
+            case "find_nodes":
+                self.handle_find_nodes(message)
+            
+            case "found_nodes":
+                self.handle_found_nodes(message)
+  
+            case "found_value":
+                self.handle_found_value(message)
+            
+    def handle_ping(self, message):
+        m_con = self.connections[message.sender]
+        m_con.send_pong(self.sock, (self.ip, self.port))
+        
+    def handle_store(self, message):
+        pass
+    
+    def handle_find_value(self, message):
+        pass
+        
+    def handle_find_nodes(self, message):
+        pass
+    
+    def handle_found_nodes(self, message):
+        pass
+    
+    def handle_found_value(self, message):
+        pass
+        
         
     # just closes socket
     # send termination datagram to server sock
@@ -206,4 +238,4 @@ class UDP_Server:
         self_contact.send_message(shut_down_sock, Message(sender, body))
 
         shut_down_sock.close()
-        print ("Peer " + str(self.id) + " Shutting Down. Cya!")
+        #print ("Peer " + str(self.id) + " Shutting Down")

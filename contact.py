@@ -36,16 +36,6 @@ class Contact:
         if (sock.sendto(data, (self.ip, self.port)) == 0):
             print("Error transmitting message")
 
-    def send_pong(self, sock, sender):
-        
-        body = {
-            "type" : "pong",
-            "data" : ""
-        }
-        
-        m = Message(sender,body)
-        self.send_message(sock, m)
-        
     def send_ping(self, sock, sender):
         
         body = {
@@ -54,4 +44,14 @@ class Contact:
         }
         
         m = Message(sender, body)
+        self.send_message(sock, m)
+
+    def send_pong(self, sock, sender):
+        
+        body = {
+            "type" : "pong",
+            "data" : ""
+        }
+        
+        m = Message(sender,body)
         self.send_message(sock, m)

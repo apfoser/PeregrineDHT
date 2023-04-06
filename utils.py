@@ -5,7 +5,9 @@ def calc_id(host, port):
     id.update(host.encode())
     id.update(str(port).encode())
     
-    return id.hexdigest()
+    # I think truncation preserves even distribution
+    # truncate to 160
+    return id.hexdigest()[:160]
 
 # use XOR to find the largest differing bit of the distance
 # between the two id's (XOR is kademlia specific)

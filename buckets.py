@@ -5,7 +5,7 @@ import utils
 
 class bucket_tree():
     
-    def _init__(self, id, bucket_size, buckets):
+    def __init__(self, id, bucket_size, buckets):
         self.id = id
         self.bucket_size = bucket_size
         self.buckets = [[] for _ in range(buckets)]

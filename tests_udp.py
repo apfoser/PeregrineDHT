@@ -1,11 +1,9 @@
-import peer_udp
+import peer_udp as peer_udp
 import time
 import sys
 import socket
 import contact
 from hanging_threads import start_monitoring
-
-#start_monitoring(seconds_frozen=5, test_interval=100)
 
 current_port = int(sys.argv[2])
 n = int(sys.argv[1])
@@ -18,12 +16,11 @@ def gen_connections_helper(n, peer_list, contact_infos):
         return False
     
     for i in range(n):
-        p = peer_udp.UDP_Server(str(i+1), current_port)
+        p = peer_udp.UDP_Server(current_port)
         info = peer_udp.Contact('fe80::5dca:6908:58c3:c55f', current_port, '')
         current_port += 1
         peer_list.append(p)
         contact_infos.append(info)
-    
     return
 
 def connections_test(n):
