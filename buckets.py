@@ -38,6 +38,5 @@ class bucket_tree():
                 for p in bucket:
                     peers.append(p)
                     
-            #peers = (peer for bucket in self.buckets for peer in bucket)
             best_peers = heapq.nsmallest(num_results, peers, distance)
             return [Contact(*peer) for peer in best_peers]

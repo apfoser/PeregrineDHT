@@ -14,6 +14,9 @@ class UDP_Server:
         # termination flag
         self.end = 0
         
+        # nod this server belongs to
+        self.dht = None
+        
         # threading lock(s) for shared resources
         self.connections_lock = threading.Lock()
         self.messages_lock = threading.Lock()
@@ -158,6 +161,9 @@ class UDP_Server:
             with self.connections_lock:
                 self.connections[(client_ip, client_port)] = new_contact
                 
+            # update bucket_set (only if DHT node present)
+            if self.dht: self.dht.buckets.insert(new_contact)
+                
             # if it is just a connection message, we don't care
             # no need to append to message queue
             if message.body["type"] != "connect":
@@ -179,18 +185,14 @@ class UDP_Server:
         # contact object responds to client (message.sender)
         match m_type:
             
-            # no use for these two right now
-            case "connect": 
-                return
-            case "broadcast": 
-                return
+            # no use for these right now
+            # type == broadcast
+            # type == connect
+            # type == pong
             
             case "ping": 
-                self.handle_ping(message) 
+                self.handle_ping(message)
                 
-            case "pong": 
-                pass
-            
             case "store":
                 self.handle_store(message)
             
@@ -205,6 +207,7 @@ class UDP_Server:
   
             case "found_value":
                 self.handle_found_value(message)
+                
             
     def handle_ping(self, message):
         m_con = self.connections[message.sender]
@@ -238,4 +241,4 @@ class UDP_Server:
         self_contact.send_message(shut_down_sock, Message(sender, body))
 
         shut_down_sock.close()
-        #print ("Peer " + str(self.id) + " Shutting Down")
+        print ("Peer " + str(self.id) + " Shutting Down")
