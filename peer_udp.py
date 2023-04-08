@@ -158,11 +158,13 @@ class UDP_Server:
             
             new_contact = Contact(client_ip, client_port, calc_id(client_ip, client_port))
             
+            #print(new_contact.ip, new_contact.port)
             with self.connections_lock:
                 self.connections[(client_ip, client_port)] = new_contact
                 
             # update bucket_set (only if DHT node present)
-            if self.dht: self.dht.buckets.insert(new_contact)
+            if self.dht: 
+                self.dht.buckets.insert(new_contact)
                 
             # if it is just a connection message, we don't care
             # no need to append to message queue
@@ -214,16 +216,41 @@ class UDP_Server:
         m_con.send_pong(self.sock, (self.ip, self.port))
         
     def handle_store(self, message):
-        pass
+        key = message.body["data"]
+        if not self.dht: return
+        self.dht.data[key] = 1
     
     def handle_find_value(self, message):
         pass
         
     def handle_find_nodes(self, message):
-        pass
+        
+        key = message.body["key"]
+        #print("key", key)
+        rpc_id = message.body["rpc_id"]
+        
+        if self.dht == None: return
+        
+        #print("here", self.dht.buckets)
+        nearest_nodes = self.dht.buckets.nearest_nodes(key)
+        #print("here", [n.port for n in nearest_nodes])
+        if not nearest_nodes: nearest_nodes.append(self.dht.contact)
+        nearest_nodes = [p.astriple() for p in nearest_nodes]
+        #print(nearest_nodes)
+        
+        m_con = self.connections[message.sender]
+        m_con.found_nodes(self.sock, (self.ip, self.port), nearest_nodes, rpc_id, key)
+        
     
     def handle_found_nodes(self, message):
-        pass
+        
+        rpc_id = message.body["rpc_id"]
+        candidates = self.dht.rpcs[rpc_id]
+        del self.dht.rpcs[rpc_id]
+        
+        #print(message.body["data"])
+        nodes = [Contact(*c) for c in message.body["data"]]
+        candidates.update(nodes)
     
     def handle_found_value(self, message):
         pass

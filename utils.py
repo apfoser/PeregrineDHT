@@ -12,10 +12,14 @@ def calc_id(host, port):
 # use XOR to find the largest differing bit of the distance
 # between the two id's (XOR is kademlia specific)
 def largest_differing_bit(id1, id2):
+    
+    id1 = int(id1, 16)
+    id2 = int(id2, 16)
+    
     distance = id1 ^ id2
     l = -1
     while distance:
         distance >>= 1
-        length += 1
+        l += 1
         
-    return max(0, length)
+    return max(0, l)

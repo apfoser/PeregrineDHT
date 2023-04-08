@@ -13,7 +13,7 @@ class bucket_tree():
     
     def insert(self, contact: Contact):
         
-        # don't need to insert ourselved in our bucket set
+        # don't need to insert ourselves in our bucket set
         if contact.id == self.id: return
         
         bucket_num = utils.largest_differing_bit(self.id, contact.id)
@@ -31,7 +31,8 @@ class bucket_tree():
         num_results = min(limit, self.bucket_size) if limit else self.bucket_size
         with self.lock:
             def distance(peer):
-                return key ^ peer[2]
+                #print("peer", key, peer[2])
+                return int(key, 16) ^ int(peer[2], 16)
 
             peers = []
             for bucket in self.buckets:
@@ -40,3 +41,8 @@ class bucket_tree():
                     
             best_peers = heapq.nsmallest(num_results, peers, distance)
             return [Contact(*peer) for peer in best_peers]
+        
+    def print_peers(self):
+        for bucket in self.buckets:
+                for p in bucket:
+                    print(p)

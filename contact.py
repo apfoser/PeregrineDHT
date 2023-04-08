@@ -9,6 +9,8 @@ class Message:
     {
         "type" : one of ["test", "ping", "pong", "broadcast"]
         "data" : depends on type (data protocol in progress)
+        "rpc_id" : id of procedure call by other node
+        "key" : key for distance calculations
     }
     '''
     def __init__(self, sender: str, body: str):
@@ -55,3 +57,38 @@ class Contact:
         
         m = Message(sender,body)
         self.send_message(sock, m)
+        
+    def send_store(self, sock, sender, data):
+        
+        body = {
+            "type" : "store",
+            "data" : data
+        }
+        
+        m = Message(sender,body)
+        self.send_message(sock, m)
+        
+    def find_nodes(self, sock, sender, rpc_id, key):
+        
+        body = {
+            "type" : "find_nodes",
+            "data" : "",
+            "rpc_id" : rpc_id,
+            "key" : key
+        }
+        
+        m = Message(sender,body)
+        self.send_message(sock, m)
+        
+    def found_nodes(self, sock, sender, data, rpc_id, key):
+        
+        body = {
+            "type" : "found_nodes",
+            "data" : data,
+            "rpc_id" : rpc_id,
+            "key" : key
+        }
+        
+        m = Message(sender,body)
+        self.send_message(sock, m)
+        
