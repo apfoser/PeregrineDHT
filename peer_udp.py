@@ -4,6 +4,7 @@ from collections import deque
 from contact import Contact, Message
 import pickle
 from utils import calc_id
+import time
 
 socket_type = socket.SOCK_DGRAM
 
@@ -142,7 +143,7 @@ class UDP_Server:
             
             # create new contact entry
             try:
-                client_message, client_addr = self.sock.recvfrom(1024)
+                client_message, client_addr = self.sock.recvfrom(4096)
             except ConnectionResetError:
                 print("Error associated with (ip, port):", "(localhost, " + str(self.port) + ")")
                 break
@@ -221,7 +222,20 @@ class UDP_Server:
         self.dht.data[key] = 1
     
     def handle_find_value(self, message):
-        pass
+        
+        if self.dht == None: return
+        
+        key = message.body["key"]
+        rpc_id = message.body["rpc_id"]
+        m_con = self.connections[message.sender]
+        
+        if key in self.dht.data:
+            m_con.found_value(self.sock, (self.ip, self.port), key, rpc_id, key)
+        else:
+            nearest_nodes = self.dht.buckets.nearest_nodes(key)
+            if not nearest_nodes: nearest_nodes.append(self.dht.contact)
+            nearest_nodes = [p.astriple() for p in nearest_nodes]
+            m_con.found_nodes(self.sock, (self.ip, self.port), nearest_nodes, rpc_id, key)
         
     def handle_find_nodes(self, message):
         
@@ -253,7 +267,11 @@ class UDP_Server:
         candidates.update(nodes)
     
     def handle_found_value(self, message):
-        pass
+        
+        rpc_id = message.body["rpc_id"]
+        candidates = self.dht.rpcs[rpc_id]
+        del self.dht.rpcs[rpc_id]
+        candidates.set_complete(message.body["data"])
         
         
     # just closes socket

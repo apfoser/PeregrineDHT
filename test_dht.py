@@ -1,27 +1,41 @@
 import dht_node
+import utils
+import time
 
-node = None
-while True:
-    choice = input("Command: ")
-    
-    if choice == "start":
-        port = int(input("Enter Port Number: "))
-        node = dht_node.dht_node(port)
 
-        print(node.server.id)
-        print(node.server.ip)
-        
-    elif choice == "end":
-        if node != None:
-            node.shut_down()
-            break
-        
-    elif choice == "boot":
-        if node != None:
-            ip = input("IP: ")
-            port = int(input("Port: "))
-            node.bootstrap((ip, port))
+port = 11000
+
+nodes = []
+
+start = time.time()
+
+for _ in range(10):
+    n = dht_node.dht_node(port=port)
+    nodes.append(n)
+    port += 1
     
-    elif choice == "connections":
-        if node != None:
-            node.buckets.print_peers()
+for i in range(1, len(nodes)):
+    n = nodes[i]
+    
+    n.bootstrap((n.server.ip, 11000))
+    #print("\n")
+    
+print('Time (Bootstrap)(ms): ', 1000* (time.time() - start))
+
+dat = input("Data: ")
+key = utils.calc_key(dat)
+print("Key:", key)
+
+node = nodes[-1]
+storage_nodes = node.store(key)
+
+for n in storage_nodes:
+    print("Stored At: ", n)
+    
+if node.get(key):
+    print("\n" + "Found", key)
+else:
+    print("Not Found")
+
+for i in range(len(nodes)):
+    nodes[i].server.shut_down()

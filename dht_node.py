@@ -6,7 +6,7 @@ import random
 import utils
 import time
 
-k = 20
+k = 5
 alpha = 3
 id_len = 160
 
@@ -40,17 +40,29 @@ class dht_node():
         while not candidates.complete() or boot_peer:
             nearest_nodes = candidates.next_iter(alpha)
             for peer in nearest_nodes:
-                candidates.mark(peer) #this is the key step that leads to completness
+                candidates.mark(peer) #this is the key step that leads to completeness
                 rpc_id = random.getrandbits(id_len)
                 self.rpcs[rpc_id] = candidates
                 peer.find_nodes(self.server.sock, sender, rpc_id, key)
-            time.sleep(1)
+            time.sleep(.1)
             boot_peer = None
             
         return candidates.results()    
     
     def find_value(self, key):
-        pass
+        candidates = lookup(k, key)
+        candidates.update(self.buckets.nearest_nodes(key, limit=alpha))
+        sender = (self.server.ip, self.server.port)
+        while not candidates.complete():
+            nearest_nodes = candidates.next_iter(alpha)
+            for peer in nearest_nodes: 
+                candidates.mark(peer)
+                rpc_id = random.getrandbits(id_len)
+                self.rpcs[rpc_id] = candidates
+                peer.find_value(self.server.sock, sender, rpc_id, key)
+                
+        return candidates.result_value()
+        
     
     def bootstrap(self, address):
         contact = Contact(address[0], address[1], utils.calc_id(*address))
@@ -59,8 +71,10 @@ class dht_node():
         # do the bootstrapping (find nodes with key = contact.id)
         neighbors = self.find_nodes(self.server.id, boot_peer = contact)
         
+        #print(len(neighbors))
         for n in neighbors:
             self.buckets.insert(n)
+            #print(n.port)
     
     def store(self, key):
         
@@ -73,14 +87,17 @@ class dht_node():
                 
         else:
             self.data[key] = 1
+            
+        return [(c.ip, c.port) for c in storage_candidates]
     
     def get(self, key):
         
-        if key in self.data: return self.data[key]
+        if key in self.data: 
+            return key
         res = self.find_value(key)
-
-        if res: return res
-        raise KeyError        
+    
+        if res: return True
+        return False       
     
     def shut_down(self):
         self.server.shut_down()

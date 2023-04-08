@@ -92,3 +92,34 @@ class Contact:
         m = Message(sender,body)
         self.send_message(sock, m)
         
+    def find_value(self, sock, sender, rpc_id, key):
+        body = {
+            "type" : "find_value",
+            "data" : "",
+            "rpc_id" : rpc_id,
+            "key" : key
+        }
+        
+        m = Message(sender,body)
+        self.send_message(sock, m)
+        
+    def found_value(self, sock, sender, data, rpc_id, key):
+        
+        body = {
+            "type" : "found_value",
+            "data" : data,
+            "rpc_id" : rpc_id,
+            "key" : key
+        }
+        
+        m = Message(sender,body)
+        self.send_message(sock, m)
+        
+    def store(self, sock, sender, data):
+        body = {
+            "type" : "store",
+            "data" : data,
+        }
+        
+        m = Message(sender,body)
+        self.send_message(sock, m)

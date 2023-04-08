@@ -15,7 +15,7 @@ class lookup():
         with self.lock:
             self.completion_value = value
             
-    def result(self):
+    def result_value(self):
         with self.lock : return self.completion_value
         
     def update(self, nodes):

@@ -1,5 +1,11 @@
 import hashlib
 
+def calc_key(data):
+    key = hashlib.sha256()
+    key.update(data.encode())
+    
+    return key.hexdigest()[:20]
+
 def calc_id(host, port):
     id = hashlib.sha256()
     id.update(host.encode())
