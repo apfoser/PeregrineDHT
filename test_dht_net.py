@@ -1,6 +1,8 @@
+import interface_node
 import dht_node
 import utils
 import time
+from threading import Thread
 
 current_node = None
 nodes = []
@@ -8,12 +10,21 @@ nodes = []
 def create_net(n, port):
     print("Setting net up...")
     current_port = port
-    for _ in range(n):
+    
+    # create the interface/bootstrap node
+    # create in new thread
+    t = Thread(target = interface_node.interface_node, args=(current_port,))
+    t.start()
+    current_port += 1
+    
+    # create n-1 dht nodes
+    for _ in range(n-1):
         n = dht_node.dht_node(current_port)
         nodes.append(n)
         current_port += 1
         
-    for n in nodes[1:]:
+    # bootsrap at first node
+    for n in nodes:
         n.bootstrap((n.server.ip, port))
         
     return nodes[-1]
